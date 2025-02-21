@@ -6,10 +6,16 @@ on:
 
 jobs:
   docker-hub:
-    name: Push multi-arch Docker image to Docker Hub
+    name: "Push ${{ matrix.base-os.name }} (Python ${{ matrix.python-version }}) Docker image to Docker Hub"
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+        base-os:
+          - {name: alpine, uv: alpine, python: alpine}
+          - {name: debian, uv: bookworm-slim, python: slim-bookworm}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -32,17 +38,28 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: "${{ github.repository }}:${{ github.event.release.tag_name }}-alpine"
+          tags: "${{ github.repository }}:${{ github.event.release.tag_name }}-${{ matrix.base-os.name }}"
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python-version }}
+            PYTHON_BASE_OS=${{ matrix.base-os.python }}
+            UV_BASE_OS=${{ matrix.base-os.uv }}
+          target: "${{ matrix.base-os.name }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=Connect to MCP servers that run on SSE transport, or expose stdio servers as an SSE server using the MCP Proxy server.
 
   ghcr-io:
-    name: Push multi-arch Docker image to ghcr.io
+    name: "Push ${{ matrix.base-os.name }} (Python ${{ matrix.python-version }}) Docker image to ghcr.io"
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+        base-os:
+          - {name: alpine, uv: alpine, python: alpine}
+          - {name: debian, uv: bookworm-slim, python: slim-bookworm}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -66,6 +83,11 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: "ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}-alpine"
+          tags: "ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}-${{ matrix.base-os.name }}"
+          build-args: |
+            PYTHON_VERSION=${{ matrix.python-version }}
+            PYTHON_BASE_OS=${{ matrix.base-os.python }}
+            UV_BASE_OS=${{ matrix.base-os.uv }}
+          target: "${{ matrix.base-os.name }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max

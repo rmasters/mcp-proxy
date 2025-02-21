@@ -1,5 +1,9 @@
+ARG PYTHON_VERSION=3.12
+ARG PYTHON_BASE_OS=alpine
+ARG UV_BASE_OS=alpine
+
 # Build stage
-FROM ghcr.io/astral-sh/uv:python3.12-alpine AS uv
+FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-${UV_BASE_OS} AS uv
 
 # Install the project into /app
 WORKDIR /app
@@ -22,8 +26,8 @@ ADD . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable
 
-# Final stage
-FROM python:3.12-alpine
+# Final stage (alpine)
+FROM python:${PYTHON_VERSION}-${PYTHON_BASE_OS} AS alpine
 
 LABEL org.opencontainers.image.source=https://github.com/sparfenyuk/mcp-proxy
 LABEL org.opencontainers.image.description="Connect to MCP servers that run on SSE transport, or expose stdio servers as an SSE server using the MCP Proxy server."
@@ -37,6 +41,27 @@ COPY --from=ghcr.io/astral-sh/uv:python3.12-alpine /usr/local/bin/uv /usr/local/
 
 # Make npx available for use
 RUN apk add --update --no-cache npm
+
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
+
+ENTRYPOINT ["mcp-proxy"]
+
+# Final stage (debian)
+FROM python:${PYTHON_VERSION}-${PYTHON_BASE_OS} AS debian
+
+LABEL org.opencontainers.image.source=https://github.com/sparfenyuk/mcp-proxy
+LABEL org.opencontainers.image.description="Connect to MCP servers that run on SSE transport, or expose stdio servers as an SSE server using the MCP Proxy server."
+LABEL org.opencontainers.image.licenses=MIT
+
+COPY --from=uv --chown=app:app /app/.venv /app/.venv
+
+# Make uvx available for use
+ENV UV_PYTHON_PREFERENCE=system
+COPY --from=ghcr.io/astral-sh/uv:python3.12-alpine /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
+
+# Make npx available for use
+RUN apt-get update && apt-get install -y npm && rm -rf /var/lib/apt/lists/*
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
