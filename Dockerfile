@@ -31,6 +31,13 @@ LABEL org.opencontainers.image.licenses=MIT
 
 COPY --from=uv --chown=app:app /app/.venv /app/.venv
 
+# Make uvx available for use
+ENV UV_PYTHON_PREFERENCE=system
+COPY --from=ghcr.io/astral-sh/uv:python3.12-alpine /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
+
+# Make npx available for use
+RUN apk add --update --no-cache npm
+
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
