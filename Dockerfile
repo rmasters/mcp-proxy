@@ -1,5 +1,5 @@
-# Build stage with explicit platform specification
-FROM --platform=$TARGETPLATFORM ghcr.io/astral-sh/uv:python3.12-alpine AS uv
+# Build stage
+FROM ghcr.io/astral-sh/uv:python3.12-alpine AS uv
 
 # Install the project into /app
 WORKDIR /app
@@ -22,8 +22,8 @@ ADD . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable
 
-# Final stage with explicit platform specification
-FROM --platform=$TARGETPLATFORM python:3.12-alpine
+# Final stage
+FROM python:3.12-alpine
 
 LABEL org.opencontainers.image.source=https://github.com/sparfenyuk/mcp-proxy
 LABEL org.opencontainers.image.description="Connect to MCP servers that run on SSE transport, or expose stdio servers as an SSE server using the MCP Proxy server."
